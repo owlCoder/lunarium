@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-.PHONY: icons project build clean
+.PHONY: icons project build local-build local-release dmg clean
 
 icons:
 	@swift scripts/generate-icon.swift
@@ -10,6 +10,15 @@ project: icons
 
 build: project
 	xcodebuild -project Lunarium.xcodeproj -scheme Lunarium -configuration Debug -destination 'platform=macOS,arch=arm64' CODE_SIGNING_ALLOWED=NO build
+
+local-build: project
+	bash scripts/build-local.sh
+
+local-release: project
+	bash scripts/build-local.sh Release
+
+dmg: local-release
+	bash scripts/package-dmg.sh .build/local-release/Lunarium.app "$(RELEASE_LABEL)"
 
 clean:
 	rm -rf Lunarium.xcodeproj

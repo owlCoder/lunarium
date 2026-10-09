@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 
 /// A zero-dependency, AppKit-only selection and annotation canvas.
 /// Screen coordinates are in points; export rasterizes at capture pixel scale.
@@ -12,7 +13,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
     private var annotations: [Annotation] = []
     private var preview: Annotation?
     private var toolbar: NSVisualEffectView?
-    private var toolButtons: [NSButton] = []
+    private var toolButtons: [CaptureToolbarButton] = []
     private var textField: NSTextField?
     private var textOrigin: CGPoint?
     private var inkColor: NSColor = .systemPurple
@@ -21,6 +22,9 @@ final class SelectionView: NSView, NSTextFieldDelegate {
         self.snapshot = snapshot
         super.init(frame: CGRect(origin: .zero, size: snapshot.screen.frame.size))
         wantsLayer = true
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel(NSLocalizedString("editor.canvas", value: "Screenshot editor", comment: ""))
     }
 
     required init?(coder: NSCoder) { nil }
@@ -51,7 +55,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
             shade.appendRect(selection)
             shade.windingRule = .evenOdd
         }
-        NSColor.black.withAlphaComponent(0.40).setFill()
+        NSColor.black.withAlphaComponent(0.34).setFill()
         shade.fill()
 
         guard let selection, selection.width > 0, selection.height > 0 else {
@@ -59,9 +63,12 @@ final class SelectionView: NSView, NSTextFieldDelegate {
             return
         }
 
-        NSColor.systemPurple.setStroke()
         let outline = NSBezierPath(rect: selection)
-        outline.lineWidth = 1.8
+        NSColor.black.withAlphaComponent(0.45).setStroke()
+        outline.lineWidth = 3
+        outline.stroke()
+        NSColor.white.withAlphaComponent(0.95).setStroke()
+        outline.lineWidth = 1
         outline.stroke()
 
         if isEditing {
@@ -73,7 +80,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
             if preview?.tool == .redact { preview?.draw() }
             NSGraphicsContext.restoreGraphicsState()
         }
-        drawDimensions(for: selection)
+        if !isEditing { drawDimensions(for: selection) }
     }
 
     private func drawHint() {
@@ -160,7 +167,9 @@ final class SelectionView: NSView, NSTextFieldDelegate {
     }
 
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { // Escape
+        if performCaptureShortcut(with: event) {
+            return
+        } else if event.keyCode == 53 { // Escape
             onFinish?()
         } else if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "z" {
             if !annotations.isEmpty { annotations.removeLast() }
@@ -170,26 +179,41 @@ final class SelectionView: NSView, NSTextFieldDelegate {
         }
     }
 
+    /// Handle capture actions even when a toolbar control has keyboard focus.
+    @discardableResult
+    func performCaptureShortcut(with event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+        guard isEditing, event.keyCode == UInt16(kVK_ANSI_C),
+              modifiers == .command || modifiers == .control else { return false }
+        copyImage()
+        return true
+    }
+
     private func showToolbar() {
         guard let selection else { return }
         toolbar?.removeFromSuperview()
         toolButtons.removeAll()
 
-        let panel = NSVisualEffectView(frame: CGRect(x: 0, y: 0, width: 590, height: 48))
+        let panel = NSVisualEffectView(frame: CGRect(x: 0, y: 0, width: 452, height: 104))
         panel.material = .hudWindow
+        panel.appearance = NSAppearance(named: .darkAqua)
         panel.blendingMode = .withinWindow
         panel.state = .active
         panel.wantsLayer = true
-        panel.layer?.cornerRadius = 13
+        panel.layer?.cornerRadius = 14
         panel.layer?.masksToBounds = true
-        panel.layer?.borderColor = NSColor.white.withAlphaComponent(0.16).cgColor
+        panel.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.72).cgColor
+        panel.layer?.borderColor = NSColor.white.withAlphaComponent(0.14).cgColor
         panel.layer?.borderWidth = 1
+        panel.setAccessibilityElement(true)
+        panel.setAccessibilityRole(.group)
+        panel.setAccessibilityLabel(NSLocalizedString("editor.toolbar", value: "Capture tools", comment: ""))
 
         let stack = NSStackView()
-        stack.orientation = .horizontal
-        stack.alignment = .centerY
-        stack.spacing = 3
-        stack.edgeInsets = NSEdgeInsets(top: 6, left: 7, bottom: 6, right: 7)
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 12
+        stack.edgeInsets = NSEdgeInsets(top: 14, left: 14, bottom: 14, right: 14)
         stack.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(stack)
         NSLayoutConstraint.activate([
@@ -199,35 +223,91 @@ final class SelectionView: NSView, NSTextFieldDelegate {
             stack.bottomAnchor.constraint(equalTo: panel.bottomAnchor)
         ])
 
+        let tools = NSStackView()
+        tools.orientation = .horizontal
+        tools.alignment = .centerY
+        tools.spacing = 4
+        tools.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        stack.addArrangedSubview(tools)
         for tool in AnnotationTool.allCases {
+            if tool == .blur { tools.addArrangedSubview(makeSeparator()) }
             let button = makeButton(symbol: tool.symbol, title: tool.title,
                                     action: #selector(selectTool(_:)))
             button.tag = tool.rawValue
             toolButtons.append(button)
-            stack.addArrangedSubview(button)
+            tools.addArrangedSubview(button)
         }
-        let colorWell = NSColorWell(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
+        tools.addArrangedSubview(makeSeparator())
+        let colorWell = NSColorWell(style: .minimal)
         colorWell.color = inkColor
         colorWell.target = self
         colorWell.action = #selector(changeColor(_:))
         colorWell.toolTip = NSLocalizedString("tool.color", value: "Annotation color", comment: "")
-        colorWell.widthAnchor.constraint(equalToConstant: 30).isActive = true
-        stack.addArrangedSubview(colorWell)
-        let separator = NSBox()
-        separator.boxType = .separator
-        separator.setFrameSize(NSSize(width: 1, height: 24))
-        stack.addArrangedSubview(separator)
-        stack.addArrangedSubview(makeButton(symbol: "arrow.uturn.backward", title: NSLocalizedString("tool.undo", value: "Undo", comment: "") + " (⌘Z)",
-                                            action: #selector(undoAnnotation)))
-        stack.addArrangedSubview(makeButton(symbol: "doc.on.doc", title: NSLocalizedString("tool.copy", value: "Copy PNG", comment: ""),
-                                            action: #selector(copyImage)))
-        stack.addArrangedSubview(makeButton(symbol: "square.and.arrow.down", title: NSLocalizedString("tool.save", value: "Save PNG", comment: ""),
-                                            action: #selector(saveImage)))
-        stack.addArrangedSubview(makeButton(symbol: "xmark", title: NSLocalizedString("tool.close", value: "Close", comment: "") + " (Esc)",
-                                            action: #selector(closeCapture)))
+        colorWell.setAccessibilityLabel(colorWell.toolTip)
+        colorWell.widthAnchor.constraint(equalToConstant: 32).isActive = true
+        colorWell.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        tools.addArrangedSubview(colorWell)
 
-        let x = max(8, min(selection.minX, bounds.width - panel.frame.width - 8))
-        let y = selection.minY - 60 >= 8 ? selection.minY - 60 :
+        let actions = NSView()
+        actions.widthAnchor.constraint(equalToConstant: panel.frame.width - 28).isActive = true
+        actions.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        stack.addArrangedSubview(actions)
+
+        let leading = NSStackView()
+        leading.orientation = .horizontal
+        leading.alignment = .centerY
+        leading.spacing = 6
+        leading.addArrangedSubview(makeButton(symbol: "arrow.uturn.backward", title: NSLocalizedString("tool.undo", value: "Undo", comment: "") + " (⌘Z)",
+                                              action: #selector(undoAnnotation)))
+        let dimensions = NSTextField(labelWithString: "\(Int(selection.width)) × \(Int(selection.height))")
+        dimensions.font = .monospacedDigitSystemFont(ofSize: 10.5, weight: .medium)
+        dimensions.textColor = NSColor.white.withAlphaComponent(0.68)
+        dimensions.alignment = .center
+        dimensions.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        leading.addArrangedSubview(dimensions)
+
+        let trailing = NSStackView()
+        trailing.orientation = .horizontal
+        trailing.alignment = .centerY
+        trailing.spacing = 6
+        let hint = NSTextField(labelWithString: "⌘C / Ctrl+C")
+        hint.font = .systemFont(ofSize: 10, weight: .medium)
+        hint.textColor = NSColor.white.withAlphaComponent(0.5)
+        hint.alignment = .center
+        hint.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        trailing.addArrangedSubview(hint)
+        trailing.addArrangedSubview(makeButton(symbol: "xmark", title: NSLocalizedString("tool.close", value: "Close", comment: "") + " (Esc)",
+                                               action: #selector(closeCapture)))
+
+        let exports = NSStackView()
+        exports.orientation = .horizontal
+        exports.alignment = .centerY
+        exports.spacing = 8
+        let copy = makeButton(symbol: "doc.on.doc", title: NSLocalizedString("tool.copy", value: "Copy PNG", comment: ""),
+                              action: #selector(copyImage),
+                              visibleTitle: NSLocalizedString("tool.copyAction", value: "Copy", comment: ""))
+        copy.isProminent = true
+        copy.toolTip = NSLocalizedString("tool.copyHint", value: "Copy PNG to clipboard (⌘C / Ctrl+C). No file is saved.", comment: "")
+        exports.addArrangedSubview(copy)
+        exports.addArrangedSubview(makeButton(symbol: "square.and.arrow.down", title: NSLocalizedString("tool.save", value: "Save PNG", comment: ""),
+                                              action: #selector(saveImage),
+                                              visibleTitle: NSLocalizedString("tool.saveAction", value: "Save", comment: "")))
+
+        for group in [leading, exports, trailing] {
+            group.translatesAutoresizingMaskIntoConstraints = false
+            actions.addSubview(group)
+            group.centerYAnchor.constraint(equalTo: actions.centerYAnchor).isActive = true
+        }
+        NSLayoutConstraint.activate([
+            leading.leadingAnchor.constraint(equalTo: actions.leadingAnchor),
+            leading.widthAnchor.constraint(equalToConstant: 104),
+            exports.centerXAnchor.constraint(equalTo: actions.centerXAnchor),
+            trailing.trailingAnchor.constraint(equalTo: actions.trailingAnchor),
+            trailing.widthAnchor.constraint(equalTo: leading.widthAnchor)
+        ])
+
+        let x = max(8, min(selection.midX - panel.frame.width / 2, bounds.width - panel.frame.width - 8))
+        let y = selection.minY - panel.frame.height - 12 >= 8 ? selection.minY - panel.frame.height - 12 :
                  min(selection.maxY + 12, bounds.height - panel.frame.height - 8)
         panel.setFrameOrigin(NSPoint(x: x, y: max(8, y)))
         addSubview(panel)
@@ -235,27 +315,25 @@ final class SelectionView: NSView, NSTextFieldDelegate {
         updateToolButtons()
     }
 
-    private func makeButton(symbol: String, title: String, action: Selector) -> NSButton {
-        let button = NSButton()
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
-        button.imagePosition = .imageOnly
-        button.isBordered = false
-        button.toolTip = title
-        button.bezelStyle = .regularSquare
+    private func makeSeparator() -> NSBox {
+        let separator = NSBox()
+        separator.boxType = .separator
+        separator.widthAnchor.constraint(equalToConstant: 1).isActive = true
+        separator.heightAnchor.constraint(equalToConstant: 20).isActive = true
+        return separator
+    }
+
+    private func makeButton(symbol: String, title: String, action: Selector, visibleTitle: String? = nil) -> CaptureToolbarButton {
+        let button = CaptureToolbarButton(symbol: symbol, label: title, visibleTitle: visibleTitle)
         button.target = self
         button.action = action
-        button.widthAnchor.constraint(equalToConstant: 34).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 32).isActive = true
-        button.wantsLayer = true
-        button.layer?.cornerRadius = 8
+        button.widthAnchor.constraint(equalToConstant: visibleTitle == nil ? 32 : 92).isActive = true
         return button
     }
 
     private func updateToolButtons() {
         for button in toolButtons {
-            let active = button.tag == activeTool.rawValue
-            button.contentTintColor = active ? .systemPurple : .labelColor
-            button.layer?.backgroundColor = active ? NSColor.systemPurple.withAlphaComponent(0.17).cgColor : nil
+            button.isSelectedTool = button.tag == activeTool.rawValue
         }
     }
 

@@ -18,6 +18,13 @@ body:
     validations:
       required: true
   - type: input
+    id: version
+    attributes:
+      label: Lunarium version and installation method
+      placeholder: "0.2.0-preview.1 DMG, or source commit and build command"
+    validations:
+      required: true
+  - type: input
     id: macos
     attributes:
       label: macOS and Xcode versions

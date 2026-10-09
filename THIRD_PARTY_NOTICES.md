@@ -6,6 +6,6 @@ Lunarium uses [Sparkle](https://github.com/sparkle-project/Sparkle) 2.9.6 to che
 
 Copyright © Sparkle Project contributors.
 
-Sparkle is distributed under the MIT License. Its source repository and licensing details are available at https://github.com/sparkle-project/Sparkle/blob/2.x/LICENSE.
+Sparkle is distributed under the MIT License and includes components with their own license notices. The complete upstream notices from the pinned binary distribution are included in [Sparkle.txt](Lunarium/Resources/ThirdPartyLicenses/Sparkle.txt) and bundled with the app.
 
 The remaining application implementation primarily uses Apple system frameworks. This notice does not alter the license of the Lunarium project itself.

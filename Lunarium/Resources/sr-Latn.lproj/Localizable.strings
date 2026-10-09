@@ -25,9 +25,14 @@
 "tool.color" = "Boja anotacija";
 "tool.undo" = "Poništi";
 "tool.copy" = "Kopiraj PNG";
+"tool.copyAction" = "Kopiraj";
+"tool.copyHint" = "Kopiraj PNG u clipboard (⌘C / Ctrl+C). Slika se ne čuva kao fajl.";
 "tool.save" = "Sačuvaj PNG";
+"tool.saveAction" = "Sačuvaj";
 "tool.close" = "Zatvori";
 "editor.hint" = "Prevuci da označiš  ·  Esc za otkazivanje";
+"editor.canvas" = "Uređivanje snimka ekrana";
+"editor.toolbar" = "Alati za snimak";
 "editor.saveError" = "Nije moguće sačuvati snimak";
 "editor.permissionError" = "Neophodna je dozvola za snimanje ekrana";
 "menu.about" = "O Lunariumu";

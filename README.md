@@ -1,109 +1,105 @@
-# Lunarium 🌙
+# Lunarium
 
-**A fast, native, open-source screenshot and annotation tool for macOS.**
+**Native screenshots and annotations for macOS.** Capture a region, mark it up, and copy or save it without leaving your workflow.
 
 [![macOS CI](https://github.com/owlCoder/lunarium/actions/workflows/macos.yml/badge.svg)](https://github.com/owlCoder/lunarium/actions/workflows/macos.yml)
 [![MIT License](https://img.shields.io/badge/license-MIT-818cf8.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-blue.svg)](https://www.apple.com/macos/)
-[![Architecture](https://img.shields.io/badge/arch-Apple%20Silicon-blueviolet.svg)](https://developer.apple.com/)
+[![macOS](https://img.shields.io/badge/macOS-14%2B-blue.svg)](https://github.com/owlCoder/lunarium/releases)
+[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-arm64-blueviolet.svg)](https://github.com/owlCoder/lunarium/releases)
 
-<p align="center"><img src="Brand/lunarium-banner.svg" alt="Lunarium — Capture the moment. Keep the flow." width="100%"></p>
+![Lunarium — Capture the moment. Keep the flow.](Brand/lunarium-banner.svg)
 
-> **Development preview:** Lunarium is under active development. There is no notarized release yet. Follow the build instructions to test it on a Mac.
-
-Lunarium is built for the workflow that makes Lightshot feel effortless: press a key, drag an area, annotate, and copy or save. Reimagined as a privacy-first macOS utility with a lightweight AppKit overlay and native screen capture.
+[Download the preview](https://github.com/owlCoder/lunarium/releases/tag/v0.2.0-preview.1) · [Report a bug](https://github.com/owlCoder/lunarium/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/owlCoder/lunarium/issues/new?template=feature_request.yml) · [Contribute](CONTRIBUTING.md)
 
 ## Features
 
-- **One-key capture:** customizable global shortcut (default F13 / Print Screen on supported keyboards), plus permanent `⌘⇧2` fallback
-- **Region selection:** drag to select, with on-screen dimensions and a focused editing toolbar
-- **Annotations:** pen, arrows, lines, rectangles, ellipses, text, highlighter and undo; choose ink colors
-- **Sensitive areas:** blur, pixelate and opaque solid-redaction tools (recommended when actual secrecy matters)
-- **Export:** copy a PNG to the clipboard, or save a PNG file
-- **Multiple displays:** captures each connected display using ScreenCaptureKit
-- **Menu bar app:** stays out of the Dock, with optional launch at login
-- **Languages:** English and Serbian Latin
-- **Updates:** Sparkle-powered signed updates in properly configured Developer ID releases
-- **Privacy:** no cloud service, analytics, sign-in, or screenshot uploads
+- **Quick capture:** a customizable global shortcut, F13 by default, with a Command–Shift–2 fallback.
+- **Focused editor:** a white selection outline, region dimensions, and a centered toolbar.
+- **Markup:** pen, arrows, lines, rectangles, ellipses, text, highlighter, color selection, and undo.
+- **Privacy tools:** blur, pixelate, and opaque redaction. Use opaque redaction to remove sensitive pixels from the exported image.
+- **PNG export:** copy with Command–C or Control–C without saving a file, or choose a location with Save.
+- **Native integration:** a menu bar app built with Swift, AppKit, SwiftUI, and ScreenCaptureKit; optional launch at login.
+- **Multiple displays:** a capture overlay for each connected display.
+- **Localization:** English and Serbian Latin.
 
-> **Keyboard note:** macOS keyboards do not have a universal Print Screen virtual key. Many external keyboards map Print Screen to F13, but some require remapping. See [keyboard notes](docs/KEYBOARD.md).
+Screenshots stay on your Mac. There are no accounts, analytics, or screenshot uploads. [Privacy details](PRIVACY.md).
 
-## Requirements
+<p align="center"><img src="docs/images/capture-toolbar.png" alt="Lunarium capture toolbar with drawing and privacy tools, region dimensions, Copy, Save, and keyboard shortcuts" width="470"></p>
 
-- macOS 14 Sonoma or later
-- Apple Silicon (arm64) Mac
-- Xcode 16 or newer and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
-- Screen Recording permission (requested when capturing)
+*Actual AppKit interface rendered over a synthetic test image; no private screen content is shown.*
+
+## Install
+
+Requires **macOS 14 or later** on an **Apple Silicon Mac**. Intel builds are not currently distributed.
+
+1. Download the arm64 DMG from [GitHub Releases](https://github.com/owlCoder/lunarium/releases).
+2. Open the DMG and drag **Lunarium.app** into **Applications**.
+3. Launch Lunarium and choose **Capture Area** from its moon icon in the menu bar.
+4. Allow screen capture in **System Settings → Privacy & Security → Screen & System Audio Recording** (called **Screen Recording** on some macOS versions). Quit and reopen Lunarium if prompted.
+
+**Preview status:** the current download is a development prerelease, ad-hoc signed and **not notarized** by Apple. macOS may block opening it because its developer cannot be verified. It is not a Developer ID release, and automatic updates are disabled. You can also [build from source](#build-from-source). See the release notes for checksums and known limitations.
+
+## Use
+
+Press the capture shortcut, drag a region, and choose a drawing or privacy tool. **Copy** puts the annotated PNG on the clipboard and closes the overlay; **Save** opens a file chooser. After copying, paste into the app you were using.
+
+| Action | Shortcut |
+| --- | --- |
+| Start capture | F13, custom shortcut, or Command–Shift–2 |
+| Copy PNG without saving | Command–C or Control–C |
+| Undo an annotation | Command–Z |
+| Cancel capture | Escape |
+
+Configure the capture shortcut and launch-at-login preference in **Settings**. External keyboards often map Print Screen to F13; mappings vary. See [keyboard notes](docs/KEYBOARD.md).
 
 ## Build from source
+
+Install Apple's Command Line Tools (`xcode-select --install`) or Xcode, and [XcodeGen](https://github.com/yonaskolb/XcodeGen). The local build supports Apple Silicon and verifies the pinned Sparkle download with SHA-256.
 
 ```bash
 git clone https://github.com/owlCoder/lunarium.git
 cd lunarium
 brew install xcodegen
+make local-build
+open .build/local/Lunarium.app
+```
+
+To create an optimized local build and a development DMG:
+
+```bash
+make dmg
+# App: .build/local-release/Lunarium.app
+# DMG and checksum: .build/dist/
+```
+
+Local builds use ad-hoc signing. Rebuilding can require reapproving Screen Recording permission; see [development notes](docs/DEVELOPMENT.md#screen-recording-permission-after-rebuilding).
+
+For Xcode development and XCTest, install **Xcode 16 or newer**:
+
+```bash
 make project
 open Lunarium.xcodeproj
+make build
+make test
+make ui-test  # Requires an unlocked, interactive Mac
 ```
 
-Choose the **Lunarium** scheme, your local signing team if needed, and Run (⌘R). Or use `make build` for a command-line Debug build. Icon assets are generated locally from the included Swift vector drawing script. Sparkle is the sole non-Apple runtime dependency, used for signed updates.
+XcodeGen generates the project and icon assets from checked-in sources. Sparkle 2.9.6 is the only non-Apple runtime dependency. [Third-party notices](THIRD_PARTY_NOTICES.md).
 
-**First launch:** Choose **Capture Area** from the menu bar. macOS may request Screen Recording permission. Grant it in **System Settings → Privacy & Security → Screen & System Audio Recording** and restart Lunarium if prompted. The hotkeys become available while the app is running.
+## Project status
 
-## Use
+Lunarium is actively developed. The preview includes capture, annotations, privacy tools, clipboard export, and local PNG saving. Signed, notarized distribution and the complete hardware acceptance matrix remain release milestones.
 
-1. Press **Print Screen / F13** or **⌘⇧2** (or use the menu bar icon).
-2. Drag to select a region; press **Escape** to cancel.
-3. Select a drawing tool, choose a color, blur/pixelate, or cover private data with opaque redaction.
-4. Use **Copy** to paste a PNG, **Save** to write a PNG, or **Close** to dismiss. `⌘Z` undoes the most recent annotation.
+GitHub Actions builds the arm64 app and runs unit tests on pushes and pull requests. UI tests use a Debug-only synthetic capture fixture; real Screen Recording permissions and mixed-scale displays require manual testing. The [test plan](docs/TESTING.md) records the scope of these checks.
 
-## Architecture
-
-```text
-Lunarium/
-  App/                  Menu bar lifecycle and settings
-  Capture/              ScreenCaptureKit and global shortcuts
-  Editor/               Multi-display overlay, annotations and image effects
-  Services/             Clipboard and PNG export
-  Resources/            App icon asset catalog
-Brand/                  Source artwork (SVG)
-scripts/                Native icon generator
-docs/                   Contributor and keyboard notes
-.github/workflows/      macOS CI and signed-release pipeline
-project.yml             XcodeGen project definition
-```
-
-No Electron, embedded browser engine, telemetry, or screenshot upload service. Signed update checks use HTTPS through Sparkle. See [third-party notices](THIRD_PARTY_NOTICES.md).
-
-## Roadmap
-
-- [x] Native app architecture and menu bar workflow
-- [x] Region capture, annotation, copy/save workflow (initial implementation)
-- [x] User-configurable capture shortcut
-- [x] Blur / pixelate, solid redaction, color palette and richer markup tools
-- [x] Sparkle updater integration and gated Developer ID/notarization/DMG automation
-- [ ] Provision Apple/Sparkle release secrets and verify a signed update round trip
-- [x] English / Serbian Latin localization, unit tests and preferences UI smoke test
-- [ ] Complete UI automation and manual permission/multimonitor hardware validation
-- [ ] Public beta after hands-on macOS testing and successful signed release
-
-Checked items mean committed implementations with automated compilation where available, **not** production-level validation. A real-device acceptance test and Apple signing credentials remain outstanding. See [test plan](docs/TESTING.md) and [release setup](docs/RELEASE_SETUP.md).
-
-See [development notes](docs/DEVELOPMENT.md), [release process](docs/RELEASING.md), [localization](docs/LOCALIZATION.md) and [changelog](CHANGELOG.md) for project status and verification.
-
-## Automated checks
-
-Run `make test` for unit tests and `make ui-test` on an unlocked Mac for the Settings UI smoke test. Each push builds arm64 on GitHub Actions and retains an **unsigned, developer-only** ZIP artifact. A separately gated release workflow signs, notarizes and publishes stable tags when the maintainer provisions Apple credentials and Sparkle keys.
+Developer ID releases have a separate gated workflow for notarization and Sparkle update signing. The preview is distributed independently of that workflow. See [release setup](docs/RELEASE_SETUP.md), [release process](docs/RELEASING.md), and [changelog](CHANGELOG.md).
 
 ## Contributing
 
-Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Please avoid sharing private screenshot contents in bug reports.
+Bug reports, focused pull requests, accessibility improvements, and translations are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and review expectations, and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## Security & privacy
-
-Lunarium captures screen pixels only when explicitly invoked and does not transmit screenshots. See [SECURITY.md](SECURITY.md) for responsible disclosure and [PRIVACY.md](PRIVACY.md) for the privacy statement.
+Please remove private information from screenshots and logs. Report vulnerabilities privately through [GitHub's security reporting page](https://github.com/owlCoder/lunarium/security/advisories/new); see [SECURITY.md](SECURITY.md).
 
 ## License
 
-MIT © 2026 Lunarium contributors. See [LICENSE](LICENSE).
-
-Lunarium is an independent open-source project, not affiliated with Lightshot or Apple.
+[MIT](LICENSE) © 2026 Lunarium contributors. Lunarium is an independent open-source project.

@@ -1,6 +1,6 @@
 # Configuring signed macOS releases
 
-**Status:** A reproducible release workflow is committed, but a public release requires credentials only the maintainer can supply. Do not announce a beta as stable until real-device testing is completed.
+**Status:** Development previews can be packaged locally without Apple credentials; see [RELEASING.md](RELEASING.md). The Developer ID workflow below requires maintainer credentials before it can publish notarized releases and automatic updates.
 
 ## Required credentials
 
@@ -27,8 +27,8 @@ Generate and back up a single Sparkle keypair **before** your first signed relea
 5. Approve the `production` environment job. The release workflow builds with Developer ID, verifies code signing, notarizes/staples the app and DMG, signs the ZIP with Sparkle EdDSA, uploads both archives, and writes `appcast.xml` to `main`.
 6. Download the DMG on a different Mac, verify Gatekeeper, test updating from the previous notarized release.
 
-Only **stable** vX.Y.Z tags are currently supported. The public Sparkle feed URL is `https://raw.githubusercontent.com/owlCoder/lunarium/main/appcast.xml`. Protect main from unreviewed edits and restrict access to the `production` environment. Publishing the appcast requires GitHub Actions to have write permission to `main`; if branch protections block it, adjust repository policy or use a separate protected Pages deployment.
+Only **stable** vX.Y.Z tags enter this workflow; preview tags containing a hyphen are skipped. The public Sparkle feed URL is `https://raw.githubusercontent.com/owlCoder/lunarium/main/appcast.xml`. Protect main from unreviewed edits and restrict access to the `production` environment. Publishing the appcast requires GitHub Actions to have write permission to `main`; if branch protections block it, adjust repository policy or use a separate protected Pages deployment.
 
-In debug builds, no Sparkle key is bundled; “Check for Updates” safely opens GitHub Releases. The updater activates only in builds containing both an HTTPS feed and matching public key.
+In local Debug, Release, and preview builds, no Sparkle key is bundled; “Check for Updates” opens GitHub Releases. The updater activates only in builds containing both an HTTPS feed and matching public key.
 
-The signed workflow cannot succeed without these secrets; neither a Developer ID signing certificate nor a public beta release can be created automatically on the maintainer's behalf.
+The signed workflow cannot succeed without these secrets. A Developer ID signing certificate and notarization credentials must be provisioned by the maintainer; ad-hoc development previews can be published separately.

@@ -25,9 +25,14 @@
 "tool.color" = "Annotation color";
 "tool.undo" = "Undo";
 "tool.copy" = "Copy PNG";
+"tool.copyAction" = "Copy";
+"tool.copyHint" = "Copy PNG to clipboard (⌘C / Ctrl+C). No file is saved.";
 "tool.save" = "Save PNG";
+"tool.saveAction" = "Save";
 "tool.close" = "Close";
 "editor.hint" = "Drag to capture  ·  Esc to cancel";
+"editor.canvas" = "Screenshot editor";
+"editor.toolbar" = "Capture tools";
 "editor.saveError" = "Could not save screenshot";
 "editor.permissionError" = "Screen Recording permission is required";
 "menu.about" = "About Lunarium";

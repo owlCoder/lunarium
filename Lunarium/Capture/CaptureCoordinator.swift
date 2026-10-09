@@ -5,10 +5,13 @@ import CoreGraphics
 final class CaptureCoordinator {
     private var windows: [SelectionWindow] = []
     private var busy = false
+    private var previousApplication: NSRunningApplication?
 
     func start() {
         guard !busy else { return }
         busy = true
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        previousApplication = frontmost?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : frontmost
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--uitesting-capture") {
             present(FixtureCapture.make())
@@ -41,14 +44,17 @@ final class CaptureCoordinator {
             window.onFinish = { [weak self] in self?.dismiss() }
             return window
         }
+        NSApp.activate(ignoringOtherApps: true)
         windows.forEach { $0.orderFrontRegardless() }
-        windows.first?.makeKey()
+        windows.first?.makeKeyAndOrderFront(nil)
     }
 
     private func dismiss() {
         windows.forEach { $0.close() }
         windows.removeAll()
         busy = false
+        previousApplication?.activate(options: [])
+        previousApplication = nil
     }
 
     private func presentError(_ message: String) {

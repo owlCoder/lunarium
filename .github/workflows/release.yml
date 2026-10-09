@@ -20,6 +20,8 @@ concurrency:
 jobs:
   release:
     name: Developer ID + Notarization + Sparkle
+    # Preview tags are packaged locally and must never enter the stable updater.
+    if: ${{ !contains(inputs.tag || github.ref_name, '-') }}
     runs-on: macos-15
     environment: production
     env:
@@ -50,6 +52,7 @@ jobs:
           TAG="${DISPATCH_TAG:-$GITHUB_REF_NAME}"
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Only stable vX.Y.Z tags are supported"; exit 1; }
           git rev-parse "refs/tags/$TAG" >/dev/null
+          git checkout --detach "$TAG"
           echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
           echo "RELEASE_VERSION=${TAG#v}" >> "$GITHUB_ENV"
       - name: Install XcodeGen and generate project
@@ -117,7 +120,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create "$RELEASE_TAG" "dist/Lunarium-$RELEASE_VERSION-arm64.zip" "dist/Lunarium-$RELEASE_VERSION-arm64.dmg" "dist/appcast.xml" --title "Lunarium $RELEASE_VERSION" --generate-notes --verify-tag
+          (cd dist && shasum -a 256 "Lunarium-$RELEASE_VERSION-arm64.zip" "Lunarium-$RELEASE_VERSION-arm64.dmg" > SHA256SUMS)
+          gh release create "$RELEASE_TAG" "dist/Lunarium-$RELEASE_VERSION-arm64.zip" "dist/Lunarium-$RELEASE_VERSION-arm64.dmg" "dist/appcast.xml" "dist/SHA256SUMS" --title "Lunarium $RELEASE_VERSION" --generate-notes --verify-tag
       - name: Publish update feed to main
         run: |
           set -euo pipefail

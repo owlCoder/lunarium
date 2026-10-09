@@ -31,4 +31,23 @@ final class CaptureUITests: XCTestCase {
         app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
         XCTAssertFalse(capture.waitForExistence(timeout: 2))
     }
+
+    func testCopyKeyboardShortcutsDoNotOpenSavePanel() {
+        for modifier: XCUIKeyModifierFlags in [.command, .control] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--uitesting-capture"]
+            app.launch()
+            let capture = app.windows["Lunarium Capture"]
+            XCTAssertTrue(capture.waitForExistence(timeout: 10))
+            capture.coordinate(withNormalizedOffset: CGVector(dx: 0.20, dy: 0.25))
+                .press(forDuration: 0.1, thenDragTo:
+                    capture.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.70)))
+            app.typeKey("c", modifierFlags: modifier)
+            let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: capture)
+            XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 3), .completed)
+            XCTAssertNotNil(NSPasteboard.general.data(forType: .png))
+            XCTAssertFalse(app.dialogs["Save"].exists)
+            app.terminate()
+        }
+    }
 }
