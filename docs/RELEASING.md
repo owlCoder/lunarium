@@ -1,6 +1,6 @@
 # Release checklist
 
-The CI workflow builds an **unsigned** arm64 development app and retains a ZIP as a temporary GitHub Actions artifact. It does not publish a release or notarize the binary. Such artifacts are for development/testing only and may be blocked by Gatekeeper.
+The CI workflow builds an **unsigned** arm64 development app and runs unit tests. It retains a ZIP as a temporary GitHub Actions artifact. The separate gated `Signed macOS Release` workflow is configured to create notarized DMGs and signed Sparkle updates when the required maintainer secrets are supplied. See [RELEASE_SETUP.md](RELEASE_SETUP.md).
 
 For a public macOS download:
 1. Complete hardware UI validation from [DEVELOPMENT.md](DEVELOPMENT.md) and resolve all CI errors.

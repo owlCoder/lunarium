@@ -15,12 +15,15 @@ Lunarium is built for the workflow that makes Lightshot feel effortless: press a
 
 ## Features
 
-- **One-key capture:** F13 (commonly mapped to Print Screen on external keyboards), plus `⌘⇧2` fallback
+- **One-key capture:** customizable global shortcut (default F13 / Print Screen on supported keyboards), plus permanent `⌘⇧2` fallback
 - **Region selection:** drag to select, with on-screen dimensions and a focused editing toolbar
-- **Annotations:** pen, arrow, rectangle, ellipse and text; undo support
+- **Annotations:** pen, arrows, lines, rectangles, ellipses, text, highlighter and undo; choose ink colors
+- **Sensitive areas:** blur, pixelate and opaque solid-redaction tools (recommended when actual secrecy matters)
 - **Export:** copy a PNG to the clipboard, or save a PNG file
 - **Multiple displays:** captures each connected display using ScreenCaptureKit
-- **Menu bar app:** stays out of the Dock
+- **Menu bar app:** stays out of the Dock, with optional launch at login
+- **Languages:** English and Serbian Latin
+- **Updates:** Sparkle-powered signed updates in properly configured Developer ID releases
 - **Privacy:** no cloud service, analytics, sign-in, or screenshot uploads
 
 > **Keyboard note:** macOS keyboards do not have a universal Print Screen virtual key. Many external keyboards map Print Screen to F13, but some require remapping. See [keyboard notes](docs/KEYBOARD.md).
@@ -42,7 +45,7 @@ make project
 open Lunarium.xcodeproj
 ```
 
-Choose the **Lunarium** scheme, your local signing team if needed, and Run (⌘R). Or use `make build` for a command-line Debug build. Icon assets are generated locally from the included Swift vector drawing script; no external icon binaries or third-party packages are required.
+Choose the **Lunarium** scheme, your local signing team if needed, and Run (⌘R). Or use `make build` for a command-line Debug build. Icon assets are generated locally from the included Swift vector drawing script. Sparkle is the sole non-Apple runtime dependency, used for signed updates.
 
 **First launch:** Choose **Capture Area** from the menu bar. macOS may request Screen Recording permission. Grant it in **System Settings → Privacy & Security → Screen & System Audio Recording** and restart Lunarium if prompted. The hotkeys become available while the app is running.
 
@@ -50,7 +53,7 @@ Choose the **Lunarium** scheme, your local signing team if needed, and Run (⌘R
 
 1. Press **Print Screen / F13** or **⌘⇧2** (or use the menu bar icon).
 2. Drag to select a region; press **Escape** to cancel.
-3. Select a drawing tool and annotate your screenshot.
+3. Select a drawing tool, choose a color, blur/pixelate, or cover private data with opaque redaction.
 4. Use **Copy** to paste a PNG, **Save** to write a PNG, or **Close** to dismiss. `⌘Z` undoes the most recent annotation.
 
 ## Architecture
@@ -59,31 +62,37 @@ Choose the **Lunarium** scheme, your local signing team if needed, and Run (⌘R
 Lunarium/
   App/                  Menu bar lifecycle and settings
   Capture/              ScreenCaptureKit and global shortcuts
-  Editor/               Multi-display overlay and annotations
+  Editor/               Multi-display overlay, annotations and image effects
   Services/             Clipboard and PNG export
   Resources/            App icon asset catalog
 Brand/                  Source artwork (SVG)
 scripts/                Native icon generator
 docs/                   Contributor and keyboard notes
-.github/workflows/      macOS CI
+.github/workflows/      macOS CI and signed-release pipeline
 project.yml             XcodeGen project definition
 ```
 
-No Electron, embedded browser engine, third-party analytics, or network entitlement.
+No Electron, embedded browser engine, telemetry, or screenshot upload service. Signed update checks use HTTPS through Sparkle. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Roadmap
 
 - [x] Native app architecture and menu bar workflow
 - [x] Region capture, annotation, copy/save workflow (initial implementation)
-- [ ] User-configurable capture shortcut
-- [ ] Blur / pixelate and richer markup tools
-- [ ] Auto-update and signed/notarized DMG releases
-- [ ] Localization and comprehensive UI automation tests
-- [ ] Public beta after hands-on macOS testing
+- [x] User-configurable capture shortcut
+- [x] Blur / pixelate, solid redaction, color palette and richer markup tools
+- [x] Sparkle updater integration and gated Developer ID/notarization/DMG automation
+- [ ] Provision Apple/Sparkle release secrets and verify a signed update round trip
+- [x] English / Serbian Latin localization, unit tests and preferences UI smoke test
+- [ ] Complete UI automation and manual permission/multimonitor hardware validation
+- [ ] Public beta after hands-on macOS testing and successful signed release
 
-These checkboxes describe implemented source code, **not** a claim of a tested production release.
+Checked items mean committed implementations with automated compilation where available, **not** production-level validation. A real-device acceptance test and Apple signing credentials remain outstanding. See [test plan](docs/TESTING.md) and [release setup](docs/RELEASE_SETUP.md).
 
-See [development notes](docs/DEVELOPMENT.md), [release process](docs/RELEASING.md) and [changelog](CHANGELOG.md) for project status and verification.
+See [development notes](docs/DEVELOPMENT.md), [release process](docs/RELEASING.md), [localization](docs/LOCALIZATION.md) and [changelog](CHANGELOG.md) for project status and verification.
+
+## Automated checks
+
+Run `make test` for unit tests and `make ui-test` on an unlocked Mac for the Settings UI smoke test. Each push builds arm64 on GitHub Actions and retains an **unsigned, developer-only** ZIP artifact. A separately gated release workflow signs, notarizes and publishes stable tags when the maintainer provisions Apple credentials and Sparkle keys.
 
 ## Contributing
 

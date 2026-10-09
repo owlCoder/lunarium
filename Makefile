@@ -14,3 +14,11 @@ build: project
 clean:
 	rm -rf Lunarium.xcodeproj
 	rm -f Lunarium/Resources/Assets.xcassets/AppIcon.appiconset/icon-*.png
+
+.PHONY: test ui-test
+
+test: project
+	xcodebuild test -project Lunarium.xcodeproj -scheme Lunarium -configuration Debug -destination 'platform=macOS,arch=arm64' -only-testing:LunariumTests CODE_SIGNING_ALLOWED=NO
+
+ui-test: project
+	xcodebuild test -project Lunarium.xcodeproj -scheme Lunarium -configuration Debug -destination 'platform=macOS,arch=arm64' -only-testing:LunariumUITests

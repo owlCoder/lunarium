@@ -15,3 +15,9 @@ If Print Screen does not trigger Lunarium:
 4. Quit competing screenshot utilities that may capture the same shortcut.
 
 The app does **not** intercept keystrokes through a global event tap or require Accessibility permission. Configurable key recording is planned.
+
+## Custom shortcut recorder
+
+Open Lunarium's Settings and click the shortcut button, then press the desired combination. Escape cancels. Bare F13–F20 keys are supported; letters/numbers require Command, Control or Option so normal typing is never intercepted. If a key combination is already registered by macOS or another utility, Settings displays a warning; use the fallback shortcut instead.
+
+The fallback **⌘⇧2** remains available unless another application already owns that hotkey.
