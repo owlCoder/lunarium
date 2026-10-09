@@ -9,6 +9,12 @@ final class CaptureCoordinator {
     func start() {
         guard !busy else { return }
         busy = true
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitesting-capture") {
+            present(FixtureCapture.make())
+            return
+        }
+        #endif
         Task { @MainActor in
             do {
                 guard CGPreflightScreenCaptureAccess() || CGRequestScreenCaptureAccess() else {
@@ -17,18 +23,26 @@ final class CaptureCoordinator {
                     return
                 }
                 let shots = try await CaptureService.captureAllScreens()
-                windows = shots.map { shot in
-                    let window = SelectionWindow(snapshot: shot)
-                    window.onFinish = { [weak self] in self?.dismiss() }
-                    return window
-                }
-                windows.forEach { $0.orderFrontRegardless() }
-                windows.first?.makeKey()
+                present(shots)
             } catch {
                 presentError(error.localizedDescription)
                 busy = false
             }
         }
+    }
+
+    private func present(_ shots: [ScreenSnapshot]) {
+        guard !shots.isEmpty else {
+            busy = false
+            return
+        }
+        windows = shots.map { shot in
+            let window = SelectionWindow(snapshot: shot)
+            window.onFinish = { [weak self] in self?.dismiss() }
+            return window
+        }
+        windows.forEach { $0.orderFrontRegardless() }
+        windows.first?.makeKey()
     }
 
     private func dismiss() {

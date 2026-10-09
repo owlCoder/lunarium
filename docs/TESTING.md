@@ -13,9 +13,9 @@ xcodebuild test -project Lunarium.xcodeproj -scheme Lunarium \
   -destination 'platform=macOS,arch=arm64' -only-testing:LunariumTests CODE_SIGNING_ALLOWED=NO
 ```
 
-### UI smoke automation
+### UI automation
 
-`LunariumUITests/PreferencesUITests.swift` exercises Settings' visible controls. Run it on an **unlocked interactive macOS desktop**:
+`LunariumUITests/PreferencesUITests.swift` exercises Settings' visible controls. `CaptureUITests` uses the safe built-in **Debug-only** `--uitesting-capture` fixture to verify region selection, copy to clipboard and Escape cancellation without Screen Recording permission or touching real screen pixels. Run it on an **unlocked interactive macOS desktop**:
 
 ```bash
 xcodebuild test -project Lunarium.xcodeproj -scheme Lunarium \

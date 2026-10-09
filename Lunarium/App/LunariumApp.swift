@@ -58,6 +58,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.arguments.contains("--uitesting") {
             DispatchQueue.main.async { [weak self] in self?.showSettings() }
         }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitesting-capture") {
+            DispatchQueue.main.async { [weak self] in self?.coordinator.start() }
+        }
+        #endif
     }
 
     @objc private func captureArea() {

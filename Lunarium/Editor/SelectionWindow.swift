@@ -11,6 +11,7 @@ final class SelectionWindow: NSWindow {
                    backing: .buffered,
                    defer: false,
                    screen: snapshot.screen)
+        title = "Lunarium Capture"
         level = .screenSaver
         backgroundColor = .black
         isOpaque = true
