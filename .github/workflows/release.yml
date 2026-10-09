@@ -1,0 +1,132 @@
+name: Signed macOS Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing stable tag (vMAJOR.MINOR.PATCH)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: signed-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Developer ID + Notarization + Sparkle
+    runs-on: macos-15
+    environment: production
+    env:
+      APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      SPARKLE_PUBLIC_ED_KEY: ${{ secrets.SPARKLE_PUBLIC_ED_KEY }}
+      SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}
+      SPARKLE_FEED_URL: https://raw.githubusercontent.com/owlCoder/lunarium/main/appcast.xml
+      KEYCHAIN_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-lunarium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.4"
+      - name: Check credentials and release tag
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          for variable in APPLE_CERTIFICATE_P12_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_TEAM_ID APPLE_ID APPLE_APP_SPECIFIC_PASSWORD SPARKLE_PUBLIC_ED_KEY SPARKLE_PRIVATE_ED_KEY; do
+            test -n "${!variable}" || { echo "::error::Missing secret: $variable"; exit 1; }
+          done
+          TAG="${DISPATCH_TAG:-$GITHUB_REF_NAME}"
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Only stable vX.Y.Z tags are supported"; exit 1; }
+          git rev-parse "refs/tags/$TAG" >/dev/null
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+          echo "RELEASE_VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - name: Install XcodeGen and generate project
+        run: |
+          brew install xcodegen
+          make project
+      - name: Set update key in signed app
+        run: bash scripts/configure-release.sh
+      - name: Validate version
+        run: |
+          set -euo pipefail
+          BUILT_VERSION="$(plutil -extract CFBundleShortVersionString raw -o - Lunarium/Info.plist)"
+          test "$BUILT_VERSION" = "$RELEASE_VERSION" || { echo "::error::Version mismatch: project=$BUILT_VERSION tag=$RELEASE_VERSION"; exit 1; }
+          echo "RELEASE_BUILD=$(plutil -extract CFBundleVersion raw -o - Lunarium/Info.plist)" >> "$GITHUB_ENV"
+      - name: Import Developer ID certificate
+        run: |
+          set -euo pipefail
+          printf '%s' "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/developer.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/lunarium.keychain-db"
+          security set-keychain-settings -lut 21600 "$RUNNER_TEMP/lunarium.keychain-db"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/lunarium.keychain-db"
+          security import "$RUNNER_TEMP/developer.p12" -k "$RUNNER_TEMP/lunarium.keychain-db" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/lunarium.keychain-db"
+          security list-keychains -d user -s "$RUNNER_TEMP/lunarium.keychain-db"
+          IDENTITY="$(security find-identity -v -p codesigning "$RUNNER_TEMP/lunarium.keychain-db" | awk '/Developer ID Application/ {print $2; exit}')"
+          test -n "$IDENTITY" || { echo "::error::Developer ID Application identity missing"; exit 1; }
+          echo "SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/developer.p12"
+      - name: Build signed Release
+        run: |
+          set -euo pipefail
+          xcodebuild -project Lunarium.xcodeproj -scheme Lunarium -configuration Release -sdk macosx -arch arm64 -derivedDataPath build/DerivedData CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" build
+          codesign --verify --deep --strict --verbose=2 build/DerivedData/Build/Products/Release/Lunarium.app
+      - name: Notarize and staple app, ZIP and DMG
+        run: |
+          set -euo pipefail
+          mkdir -p dist/staging
+          cp -R build/DerivedData/Build/Products/Release/Lunarium.app dist/staging/
+          ditto -c -k --sequesterRsrc --keepParent dist/staging/Lunarium.app dist/notary.zip
+          xcrun notarytool submit dist/notary.zip --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple dist/staging/Lunarium.app
+          spctl --assess --type execute -vv dist/staging/Lunarium.app
+          ditto -c -k --sequesterRsrc --keepParent dist/staging/Lunarium.app "dist/Lunarium-$RELEASE_VERSION-arm64.zip"
+          ln -s /Applications dist/staging/Applications
+          hdiutil create -volname Lunarium -srcfolder dist/staging -ov -format UDZO "dist/Lunarium-$RELEASE_VERSION-arm64.dmg"
+          xcrun notarytool submit "dist/Lunarium-$RELEASE_VERSION-arm64.dmg" --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "dist/Lunarium-$RELEASE_VERSION-arm64.dmg"
+      - name: Download pinned Sparkle signing tools
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error -o "$RUNNER_TEMP/Sparkle.tar.xz" https://github.com/sparkle-project/Sparkle/releases/download/2.9.6/Sparkle-2.9.6.tar.xz
+          echo "52bf9e88cdd972fc0c81501377a880e90d47031bd8ca5462488f843e2609e192  $RUNNER_TEMP/Sparkle.tar.xz" | shasum -a 256 -c -
+          mkdir -p "$RUNNER_TEMP/sparkle"
+          tar -xf "$RUNNER_TEMP/Sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
+          test -x "$RUNNER_TEMP/sparkle/bin/sign_update"
+      - name: Sign update archive and generate appcast
+        run: |
+          set -euo pipefail
+          export RELEASE_ASSET="Lunarium-$RELEASE_VERSION-arm64.zip"
+          export SIGNATURE_LINE="$(printf '%s' "$SPARKLE_PRIVATE_ED_KEY" | "$RUNNER_TEMP/sparkle/bin/sign_update" --ed-key-file - "dist/$RELEASE_ASSET")"
+          python3 scripts/make-appcast.py
+          test -s dist/appcast.xml
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" "dist/Lunarium-$RELEASE_VERSION-arm64.zip" "dist/Lunarium-$RELEASE_VERSION-arm64.dmg" "dist/appcast.xml" --title "Lunarium $RELEASE_VERSION" --generate-notes --verify-tag
+      - name: Publish update feed to main
+        run: |
+          set -euo pipefail
+          cp dist/appcast.xml "$RUNNER_TEMP/lunarium-appcast.xml"
+          git fetch origin main
+          git checkout -B update-feed origin/main
+          cp "$RUNNER_TEMP/lunarium-appcast.xml" appcast.xml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add appcast.xml
+          git commit -m "chore(release): update Sparkle feed for $RELEASE_TAG" || exit 0
+          git push origin HEAD:main
