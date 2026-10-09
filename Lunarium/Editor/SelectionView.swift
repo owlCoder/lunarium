@@ -15,6 +15,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
     private var toolButtons: [NSButton] = []
     private var textField: NSTextField?
     private var textOrigin: CGPoint?
+    private var inkColor: NSColor = .systemPurple
 
     init(snapshot: ScreenSnapshot) {
         self.snapshot = snapshot
@@ -114,7 +115,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
         if activeTool == .text {
             beginText(at: p)
         } else {
-            preview = Annotation(tool: activeTool, start: p, end: p, points: [p])
+            preview = Annotation(tool: activeTool, start: p, end: p, points: [p], color: inkColor)
         }
     }
 
@@ -145,7 +146,11 @@ final class SelectionView: NSView, NSTextFieldDelegate {
             selection = rect
             isEditing = true
             showToolbar()
-        } else if let annotation = preview {
+        } else if var annotation = preview {
+            if annotation.tool.isImageEffect {
+                annotation.effectImage = ImageEffectRenderer.makeEffect(tool: annotation.tool,
+                    source: snapshot.image, screenSize: bounds.size, rect: annotation.rect)
+            }
             annotations.append(annotation)
             preview = nil
         }
@@ -168,7 +173,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
         toolbar?.removeFromSuperview()
         toolButtons.removeAll()
 
-        let panel = NSVisualEffectView(frame: CGRect(x: 0, y: 0, width: 362, height: 48))
+        let panel = NSVisualEffectView(frame: CGRect(x: 0, y: 0, width: 548, height: 48))
         panel.material = .hudWindow
         panel.blendingMode = .withinWindow
         panel.state = .active
@@ -192,13 +197,20 @@ final class SelectionView: NSView, NSTextFieldDelegate {
             stack.bottomAnchor.constraint(equalTo: panel.bottomAnchor)
         ])
 
-        for tool in [AnnotationTool.pen, .arrow, .rectangle, .ellipse, .text] {
+        for tool in AnnotationTool.allCases {
             let button = makeButton(symbol: tool.symbol, title: tool.title,
                                     action: #selector(selectTool(_:)))
             button.tag = tool.rawValue
             toolButtons.append(button)
             stack.addArrangedSubview(button)
         }
+        let colorWell = NSColorWell(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
+        colorWell.color = inkColor
+        colorWell.target = self
+        colorWell.action = #selector(changeColor(_:))
+        colorWell.toolTip = NSLocalizedString("tool.color", value: "Annotation color", comment: "")
+        colorWell.widthAnchor.constraint(equalToConstant: 30).isActive = true
+        stack.addArrangedSubview(colorWell)
         let separator = NSBox()
         separator.boxType = .separator
         separator.setFrameSize(NSSize(width: 1, height: 24))
@@ -243,6 +255,10 @@ final class SelectionView: NSView, NSTextFieldDelegate {
             button.contentTintColor = active ? .systemPurple : .labelColor
             button.layer?.backgroundColor = active ? NSColor.systemPurple.withAlphaComponent(0.17).cgColor : nil
         }
+    }
+
+    @objc private func changeColor(_ sender: NSColorWell) {
+        inkColor = sender.color
     }
 
     @objc private func selectTool(_ sender: NSButton) {
@@ -313,7 +329,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
                                               height: 30))
         field.stringValue = ""
         field.font = .systemFont(ofSize: 19, weight: .semibold)
-        field.textColor = .systemPurple
+        field.textColor = inkColor
         field.drawsBackground = true
         field.backgroundColor = .windowBackgroundColor
         field.isBezeled = true
@@ -333,7 +349,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
         textOrigin = nil
         field.removeFromSuperview()
         if !value.isEmpty {
-            annotations.append(Annotation(tool: .text, start: point, end: point, text: value))
+            annotations.append(Annotation(tool: .text, start: point, end: point, text: value, color: inkColor))
             needsDisplay = true
         }
         window?.makeFirstResponder(self)
