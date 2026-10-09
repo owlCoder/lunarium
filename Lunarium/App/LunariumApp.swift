@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var hotkeys: HotkeyManager?
     private let coordinator = CaptureCoordinator()
+    private var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -26,17 +27,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.image = NSImage(systemSymbolName: "moon.stars.fill", accessibilityDescription: "Lunarium")
         item.button?.toolTip = "Lunarium — Screenshot"
         let menu = NSMenu()
-        let capture = NSMenuItem(title: "Capture Area", action: #selector(captureArea), keyEquivalent: "")
+        let capture = NSMenuItem(title: NSLocalizedString("menu.capture", value: "Capture Area", comment: ""), action: #selector(captureArea), keyEquivalent: "")
         capture.target = self
         menu.addItem(capture)
         menu.addItem(NSMenuItem.separator())
 
-        let preferences = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        let preferences = NSMenuItem(title: NSLocalizedString("menu.settings", value: "Settings…", comment: ""), action: #selector(showSettings), keyEquivalent: ",")
         preferences.keyEquivalentModifierMask = [.command]
         preferences.target = self
         menu.addItem(preferences)
 
-        let quit = NSMenuItem(title: "Quit Lunarium", action: #selector(quitApp), keyEquivalent: "q")
+        let quit = NSMenuItem(title: NSLocalizedString("menu.quit", value: "Quit Lunarium", comment: ""), action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
         item.menu = menu
@@ -53,8 +54,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showSettings() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        if settingsWindow == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 385),
+                styleMask: [.titled, .closable, .miniaturizable],
+                backing: .buffered, defer: false)
+            window.title = NSLocalizedString("menu.settings", value: "Lunarium Settings", comment: "")
+            window.contentView = NSHostingView(rootView: PreferencesView())
+            window.center()
+            window.isReleasedWhenClosed = false
+            settingsWindow = window
+        }
         NSApp.activate(ignoringOtherApps: true)
+        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     @objc private func quitApp() {
