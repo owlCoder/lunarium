@@ -55,6 +55,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.coordinator.start()
         }
         hotkeys?.register()
+        if ProcessInfo.processInfo.arguments.contains("--uitesting") {
+            DispatchQueue.main.async { [weak self] in self?.showSettings() }
+        }
     }
 
     @objc private func captureArea() {

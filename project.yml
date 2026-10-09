@@ -44,3 +44,35 @@ targets:
         CFBundleLocalizations:
           - en
           - sr-Latn
+
+  LunariumTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: LunariumTests
+    dependencies:
+      - target: Lunarium
+    settings:
+      base:
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Lunarium.app/Contents/MacOS/Lunarium"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
+  LunariumUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: LunariumUITests
+    dependencies:
+      - target: Lunarium
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Lunarium:
+    build:
+      targets:
+        Lunarium: all
+    test:
+      targets:
+        - LunariumTests
+        - LunariumUITests
