@@ -1,0 +1,16 @@
+# Generated IDE project
+Lunarium.xcodeproj/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+DerivedData/
+.build/
+.DS_Store
+*.swp
+*.xcuserstate
+# Icon output generated from scripts/generate-icon.swift
+Lunarium/Resources/Assets.xcassets/AppIcon.appiconset/icon-*.png
+# Signing keys and locally-built artifacts
+*.p12
+*.mobileprovision
+*.dmg
+*.app/
