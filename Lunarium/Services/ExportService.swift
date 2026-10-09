@@ -46,23 +46,46 @@ enum ExportService {
         bitmap.restoreGState()
         NSGraphicsContext.restoreGraphicsState()
 
-        // Last-pass opaque redaction is performed in raw pixel coordinates
-        // with no NSGraphicsContext transforms. This prevents later-added
-        // blur/image effects from restoring hidden original pixels.
-        bitmap.setAllowsAntialiasing(false)
-        bitmap.setFillColor(CGColor(gray: 0, alpha: 1))
-        let extent = CGRect(x: 0, y: 0, width: base.width, height: base.height)
-        for annotation in annotations where annotation.tool == .redact {
-            let rect = annotation.rect
-            let pixels = CGRect(x: (rect.minX - selection.minX) * scaleX,
-                                y: (rect.minY - selection.minY) * scaleY,
-                                width: rect.width * scaleX,
-                                height: rect.height * scaleY).integral.intersection(extent)
-            if !pixels.isNull && !pixels.isEmpty { bitmap.fill(pixels) }
+        guard let rendered = bitmap.makeImage() else { return nil }
+        let redactions = annotations.filter { $0.tool == .redact }
+        if redactions.isEmpty {
+            return NSBitmapImageRep(cgImage: rendered).representation(using: .png, properties: [:])
         }
 
-        guard let image = bitmap.makeImage() else { return nil }
-        return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+        // Redact the raw RGBA bytes AFTER compositing every visual effect.
+        // This deliberately bypasses AppKit/CGContext state/CTM: no user content
+        // can remain underneath a redacted region in the exported raster.
+        let width = rendered.width
+        let height = rendered.height
+        let format = CGBitmapInfo.byteOrder32Big.rawValue |
+                     CGImageAlphaInfo.premultipliedLast.rawValue
+        guard let final = CGContext(data: nil, width: width, height: height,
+                                    bitsPerComponent: 8, bytesPerRow: width * 4,
+                                    space: CGColorSpaceCreateDeviceRGB(),
+                                    bitmapInfo: format),
+              let pixelData = final.data else { return nil }
+        final.draw(rendered, in: CGRect(x: 0, y: 0, width: width, height: height))
+        let buffer = pixelData.assumingMemoryBound(to: UInt8.self)
+        let stride = final.bytesPerRow
+        for annotation in redactions {
+            let rect = annotation.rect
+            let x0 = max(0, Int(floor((rect.minX - selection.minX) * scaleX)))
+            let x1 = min(width, Int(ceil((rect.maxX - selection.minX) * scaleX)))
+            let y0 = max(0, Int(floor((rect.minY - selection.minY) * scaleY)))
+            let y1 = min(height, Int(ceil((rect.maxY - selection.minY) * scaleY)))
+            guard x0 < x1, y0 < y1 else { continue }
+            for y in y0..<y1 {
+                for x in x0..<x1 {
+                    let offset = y * stride + x * 4
+                    buffer[offset] = 0
+                    buffer[offset + 1] = 0
+                    buffer[offset + 2] = 0
+                    buffer[offset + 3] = 255
+                }
+            }
+        }
+        guard let result = final.makeImage() else { return nil }
+        return NSBitmapImageRep(cgImage: result).representation(using: .png, properties: [:])
     }
 
     static func copyToClipboard(_ png: Data) {
