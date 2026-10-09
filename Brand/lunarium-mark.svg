@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Lunarium crescent moon and star">
+  <defs>
+    <linearGradient id="night" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#242C73"/><stop offset=".48" stop-color="#141738"/><stop offset="1" stop-color="#080E29"/>
+    </linearGradient>
+    <linearGradient id="moon" x1=".06" x2=".94" y1=".1" y2=".9">
+      <stop offset="0" stop-color="#F2E6FF"/><stop offset=".28" stop-color="#BFA2FF"/>
+      <stop offset=".56" stop-color="#67C8FF"/><stop offset=".83" stop-color="#6679FF"/>
+      <stop offset="1" stop-color="#E6AAFF"/>
+    </linearGradient>
+    <radialGradient id="haze"><stop offset="0" stop-color="#675CFF" stop-opacity=".55"/><stop offset="1" stop-color="#675CFF" stop-opacity="0"/></radialGradient>
+    <linearGradient id="rim" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#CEB5FF" stop-opacity=".8"/><stop offset=".7" stop-color="#777CFF" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#27295C"/>
+    </linearGradient>
+    <filter id="glow" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+  <rect x="40" y="40" width="944" height="944" rx="228" fill="url(#night)"/>
+  <rect x="40" y="40" width="944" height="944" rx="228" fill="none" stroke="url(#rim)" stroke-width="7"/>
+  <ellipse cx="480" cy="520" rx="430" ry="370" fill="url(#haze)"/>
+  <path d="M 671 159 C 475 146 278 296 252 494 C 221 715 378 858 569 866 C 691 871 782 811 841 727 C 740 788 594 775 505 681 C 392 563 419 366 545 262 C 584 231 628 192 671 159 Z" fill="#9297FF" opacity=".5" filter="url(#glow)"/>
+  <path d="M 671 159 C 475 146 278 296 252 494 C 221 715 378 858 569 866 C 691 871 782 811 841 727 C 740 788 594 775 505 681 C 392 563 419 366 545 262 C 584 231 628 192 671 159 Z" fill="url(#moon)" stroke="#DAD2FF" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M 713 307 C 727 369 745 386 801 397 C 745 407 726 426 713 487 C 702 428 681 408 627 397 C 682 386 701 370 713 307 Z" fill="#C6BBFF" filter="url(#glow)" opacity=".8"/>
+  <path d="M 713 307 C 727 369 745 386 801 397 C 745 407 726 426 713 487 C 702 428 681 408 627 397 C 682 386 701 370 713 307 Z" fill="#FFFFFF"/>
+  <circle cx="766" cy="211" r="5" fill="#AAB7FF"/><circle cx="829" cy="560" r="4" fill="#AAB7FF" opacity=".55"/>
+</svg>

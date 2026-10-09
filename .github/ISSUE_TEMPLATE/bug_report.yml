@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible problem in Lunarium
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug without attaching private screenshot content.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open Lunarium\n2. Press F13\n3. ..."
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS and Xcode versions
+      placeholder: "macOS 15.4, Xcode 16.4"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or extra context (remove private data first)
