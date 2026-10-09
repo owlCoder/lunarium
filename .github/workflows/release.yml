@@ -33,7 +33,7 @@ jobs:
       SPARKLE_FEED_URL: https://raw.githubusercontent.com/owlCoder/lunarium/main/appcast.xml
       KEYCHAIN_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-lunarium
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: maxim-lobanov/setup-xcode@v1
