@@ -75,7 +75,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
     }
 
     private func drawHint() {
-        let title = "Drag to capture  ·  Esc to cancel" as NSString
+        let title = NSLocalizedString("editor.hint", value: "Drag to capture  ·  Esc to cancel", comment: "") as NSString
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 15, weight: .medium),
             .foregroundColor: NSColor.white
@@ -215,13 +215,13 @@ final class SelectionView: NSView, NSTextFieldDelegate {
         separator.boxType = .separator
         separator.setFrameSize(NSSize(width: 1, height: 24))
         stack.addArrangedSubview(separator)
-        stack.addArrangedSubview(makeButton(symbol: "arrow.uturn.backward", title: "Undo (⌘Z)",
+        stack.addArrangedSubview(makeButton(symbol: "arrow.uturn.backward", title: NSLocalizedString("tool.undo", value: "Undo", comment: "") + " (⌘Z)",
                                             action: #selector(undoAnnotation)))
-        stack.addArrangedSubview(makeButton(symbol: "doc.on.doc", title: "Copy PNG",
+        stack.addArrangedSubview(makeButton(symbol: "doc.on.doc", title: NSLocalizedString("tool.copy", value: "Copy PNG", comment: ""),
                                             action: #selector(copyImage)))
-        stack.addArrangedSubview(makeButton(symbol: "square.and.arrow.down", title: "Save PNG",
+        stack.addArrangedSubview(makeButton(symbol: "square.and.arrow.down", title: NSLocalizedString("tool.save", value: "Save PNG", comment: ""),
                                             action: #selector(saveImage)))
-        stack.addArrangedSubview(makeButton(symbol: "xmark", title: "Close (Esc)",
+        stack.addArrangedSubview(makeButton(symbol: "xmark", title: NSLocalizedString("tool.close", value: "Close", comment: "") + " (Esc)",
                                             action: #selector(closeCapture)))
 
         let x = max(8, min(selection.minX, bounds.width - panel.frame.width - 8))
@@ -315,7 +315,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
 
     private func showError(_ message: String) {
         let alert = NSAlert()
-        alert.messageText = "Could not save screenshot"
+        alert.messageText = NSLocalizedString("editor.saveError", value: "Could not save screenshot", comment: "")
         alert.informativeText = message
         alert.alertStyle = .warning
         alert.runModal()
