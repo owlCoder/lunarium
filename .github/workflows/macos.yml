@@ -31,7 +31,7 @@ jobs:
           test -d build/DerivedData/Build/Products/Debug/Lunarium.app
           ditto -c -k --sequesterRsrc --keepParent build/DerivedData/Build/Products/Debug/Lunarium.app Lunarium-arm64-development-unsigned.zip
       - name: Upload development artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Lunarium-arm64-development-unsigned
           path: Lunarium-arm64-development-unsigned.zip
