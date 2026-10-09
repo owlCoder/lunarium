@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var hotkeys: HotkeyManager?
     private let coordinator = CaptureCoordinator()
+    private let updater = UpdateCoordinator()
     private var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -36,6 +37,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         preferences.keyEquivalentModifierMask = [.command]
         preferences.target = self
         menu.addItem(preferences)
+
+        let check = NSMenuItem(
+            title: NSLocalizedString("menu.update", value: "Check for Updates…", comment: ""),
+            action: #selector(checkForUpdates), keyEquivalent: "")
+        check.target = self
+        menu.addItem(check)
+        menu.addItem(NSMenuItem.separator())
 
         let quit = NSMenuItem(title: NSLocalizedString("menu.quit", value: "Quit Lunarium", comment: ""), action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
@@ -66,6 +74,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    @objc private func checkForUpdates() {
+        updater.checkForUpdates()
     }
 
     @objc private func quitApp() {
