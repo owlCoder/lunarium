@@ -23,4 +23,15 @@ jobs:
       - name: Generate project and icon
         run: make project
       - name: Build
-        run: xcodebuild -project Lunarium.xcodeproj -scheme Lunarium -configuration Debug -sdk macosx -arch arm64 CODE_SIGNING_ALLOWED=NO build
+        run: xcodebuild -project Lunarium.xcodeproj -scheme Lunarium -configuration Debug -sdk macosx -arch arm64 -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO build
+      - name: Package unsigned development app
+        run: |
+          test -d build/DerivedData/Build/Products/Debug/Lunarium.app
+          ditto -c -k --sequesterRsrc --keepParent build/DerivedData/Build/Products/Debug/Lunarium.app Lunarium-arm64-development-unsigned.zip
+      - name: Upload development artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lunarium-arm64-development-unsigned
+          path: Lunarium-arm64-development-unsigned.zip
+          if-no-files-found: error
+          retention-days: 14
