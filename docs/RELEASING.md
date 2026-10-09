@@ -1,6 +1,6 @@
 # Release checklist
 
-The CI workflow currently builds **unsigned** arm64 artifacts only. It does not publish a binary or notarize a release.
+The CI workflow builds an **unsigned** arm64 development app and retains a ZIP as a temporary GitHub Actions artifact. It does not publish a release or notarize the binary. Such artifacts are for development/testing only and may be blocked by Gatekeeper.
 
 For a public macOS download:
 1. Complete hardware UI validation from [DEVELOPMENT.md](DEVELOPMENT.md) and resolve all CI errors.
