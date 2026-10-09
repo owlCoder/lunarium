@@ -83,7 +83,9 @@ No Electron, embedded browser engine, third-party analytics, or network entitlem
 
 These checkboxes describe implemented source code, **not** a claim of a tested production release.
 
-See [development notes](docs/DEVELOPMENT.md), [release process](docs/RELEASING.md) and [changelog](CHANGELOG.md) for project status and verification.\n\n## Contributing
+See [development notes](docs/DEVELOPMENT.md), [release process](docs/RELEASING.md) and [changelog](CHANGELOG.md) for project status and verification.
+
+## Contributing
 
 Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Please avoid sharing private screenshot contents in bug reports.
 
