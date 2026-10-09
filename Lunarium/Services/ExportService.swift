@@ -1,4 +1,5 @@
 import AppKit
+import CoreGraphics
 import UniformTypeIdentifiers
 
 enum ExportService {
@@ -8,12 +9,14 @@ enum ExportService {
         return "Lunarium \(formatter.string(from: Date())).png"
     }
 
-    /// Crop using top-left pixel image coordinates while editor positions use
-    /// bottom-left AppKit points. Convert once; rasterize markup at native scale.
+    /// Crop in top-left CGImage pixel coordinates. Composite markup in AppKit
+    /// point coordinates, then irreversibly overwrite redacted pixels in the
+    /// final bitmap (after ALL other tools) using Core Graphics.
     static func pngData(image: CGImage, in selection: CGRect,
                         viewSize: CGSize, annotations: [Annotation]) -> Data? {
         guard selection.width > 0, selection.height > 0,
               viewSize.width > 0, viewSize.height > 0 else { return nil }
+
         let scaleX = CGFloat(image.width) / viewSize.width
         let scaleY = CGFloat(image.height) / viewSize.height
         let crop = CGRect(x: selection.minX * scaleX,
@@ -21,41 +24,45 @@ enum ExportService {
                           width: selection.width * scaleX,
                           height: selection.height * scaleY).integral
         guard let base = image.cropping(to: crop),
-              let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil,
-                                            pixelsWide: base.width, pixelsHigh: base.height,
-                                            bitsPerSample: 8, samplesPerPixel: 4,
-                                            hasAlpha: true, isPlanar: false,
-                                            colorSpaceName: .deviceRGB, bytesPerRow: 0,
-                                            bitsPerPixel: 0),
-              let context = NSGraphicsContext(bitmapImageRep: bitmap) else { return nil }
+              let bitmap = CGContext(
+                data: nil, width: base.width, height: base.height,
+                bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else { return nil }
 
         NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = context
-        let cgContext = context.cgContext
-        cgContext.scaleBy(x: CGFloat(base.width) / selection.width,
-                          y: CGFloat(base.height) / selection.height)
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: bitmap, flipped: false)
+        bitmap.saveGState()
+        bitmap.scaleBy(x: CGFloat(base.width) / selection.width,
+                       y: CGFloat(base.height) / selection.height)
         NSImage(cgImage: base, size: selection.size).draw(
             in: CGRect(origin: .zero, size: selection.size),
-            from: .zero, operation: .copy, fraction: 1)
-        // Crop drawing origin is (0,0); existing annotation positions are view-relative.
+            from: .zero, operation: .copy, fraction: 1
+        )
         for annotation in annotations where annotation.tool != .redact {
             annotation.draw(offset: CGPoint(x: -selection.minX, y: -selection.minY))
         }
-        // Always composite solid redaction last. A later-added effect must never
-        // put previously captured original pixels over a redacted area.
-        for annotation in annotations where annotation.tool == .redact {
-            if annotation.tool == .redact {
-                // Use Core Graphics, not NSBezierPath, for opaque redaction. This
-                // guarantees actual black raster pixels independent of NSImage
-                // compositing semantics and cannot be reverse-filtered.
-                let rect = annotation.rect.offsetBy(dx: -selection.minX, dy: -selection.minY)
-                cgContext.setFillColor(CGColor(gray: 0, alpha: 1))
-                cgContext.fill(rect)
-            }
-        }
-        context.flushGraphics()
+        bitmap.restoreGState()
         NSGraphicsContext.restoreGraphicsState()
-        return bitmap.representation(using: .png, properties: [:])
+
+        // Last-pass opaque redaction is performed in raw pixel coordinates
+        // with no NSGraphicsContext transforms. This prevents later-added
+        // blur/image effects from restoring hidden original pixels.
+        bitmap.setAllowsAntialiasing(false)
+        bitmap.setFillColor(CGColor(gray: 0, alpha: 1))
+        let extent = CGRect(x: 0, y: 0, width: base.width, height: base.height)
+        for annotation in annotations where annotation.tool == .redact {
+            let rect = annotation.rect
+            let pixels = CGRect(x: (rect.minX - selection.minX) * scaleX,
+                                y: (rect.minY - selection.minY) * scaleY,
+                                width: rect.width * scaleX,
+                                height: rect.height * scaleY).integral.intersection(extent)
+            if !pixels.isNull && !pixels.isEmpty { bitmap.fill(pixels) }
+        }
+
+        guard let image = bitmap.makeImage() else { return nil }
+        return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
     }
 
     static func copyToClipboard(_ png: Data) {
