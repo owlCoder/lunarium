@@ -67,8 +67,10 @@ final class SelectionView: NSView, NSTextFieldDelegate {
         if isEditing {
             NSGraphicsContext.saveGraphicsState()
             NSBezierPath(rect: selection).addClip()
-            for annotation in annotations { annotation.draw() }
-            preview?.draw()
+            for annotation in annotations where annotation.tool != .redact { annotation.draw() }
+            if preview?.tool != .redact { preview?.draw() }
+            for annotation in annotations where annotation.tool == .redact { annotation.draw() }
+            if preview?.tool == .redact { preview?.draw() }
             NSGraphicsContext.restoreGraphicsState()
         }
         drawDimensions(for: selection)

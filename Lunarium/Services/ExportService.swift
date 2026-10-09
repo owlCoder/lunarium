@@ -38,7 +38,12 @@ enum ExportService {
             in: CGRect(origin: .zero, size: selection.size),
             from: .zero, operation: .copy, fraction: 1)
         // Crop drawing origin is (0,0); existing annotation positions are view-relative.
-        for annotation in annotations {
+        for annotation in annotations where annotation.tool != .redact {
+            annotation.draw(offset: CGPoint(x: -selection.minX, y: -selection.minY))
+        }
+        // Always composite solid redaction last. A later-added effect must never
+        // put previously captured original pixels over a redacted area.
+        for annotation in annotations where annotation.tool == .redact {
             if annotation.tool == .redact {
                 // Use Core Graphics, not NSBezierPath, for opaque redaction. This
                 // guarantees actual black raster pixels independent of NSImage
@@ -46,8 +51,6 @@ enum ExportService {
                 let rect = annotation.rect.offsetBy(dx: -selection.minX, dy: -selection.minY)
                 cgContext.setFillColor(CGColor(gray: 0, alpha: 1))
                 cgContext.fill(rect)
-            } else {
-                annotation.draw(offset: CGPoint(x: -selection.minX, y: -selection.minY))
             }
         }
         context.flushGraphics()

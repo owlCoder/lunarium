@@ -41,6 +41,24 @@ final class ExportTests: XCTestCase {
         XCTAssertLessThan(pixel.blueComponent, 0.10)
     }
 
+    func testRedactionStaysOpaqueWithLaterImageEffect() throws {
+        let background = sampleImage()
+        let blurImage = ImageEffectRenderer.makeEffect(
+            tool: .blur, source: background,
+            screenSize: CGSize(width: 100, height: 100),
+            rect: CGRect(x: 10, y: 10, width: 30, height: 30))
+        let redact = Annotation(tool: .redact, start: CGPoint(x: 10, y: 10),
+                                end: CGPoint(x: 40, y: 40))
+        let blur = Annotation(tool: .blur, start: CGPoint(x: 10, y: 10),
+                              end: CGPoint(x: 40, y: 40), effectImage: blurImage)
+        let bytes = try XCTUnwrap(ExportService.pngData(
+            image: background, in: CGRect(x: 0, y: 0, width: 100, height: 100),
+            viewSize: CGSize(width: 100, height: 100), annotations: [redact, blur]))
+        let output = try XCTUnwrap(NSBitmapImageRep(data: bytes))
+        let pixel = try XCTUnwrap(output.colorAt(x: 50, y: 50)?.usingColorSpace(.deviceRGB))
+        XCTAssertLessThan(pixel.redComponent, 0.10)
+    }
+
     func testBlurAndPixelateProduceRasterOfExpectedSize() {
         for tool in [AnnotationTool.blur, .pixelate] {
             let image = ImageEffectRenderer.makeEffect(
