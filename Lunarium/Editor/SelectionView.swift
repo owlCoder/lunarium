@@ -175,7 +175,7 @@ final class SelectionView: NSView, NSTextFieldDelegate {
         toolbar?.removeFromSuperview()
         toolButtons.removeAll()
 
-        let panel = NSVisualEffectView(frame: CGRect(x: 0, y: 0, width: 548, height: 48))
+        let panel = NSVisualEffectView(frame: CGRect(x: 0, y: 0, width: 590, height: 48))
         panel.material = .hudWindow
         panel.blendingMode = .withinWindow
         panel.state = .active
