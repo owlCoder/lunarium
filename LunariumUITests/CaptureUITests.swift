@@ -33,7 +33,7 @@ final class CaptureUITests: XCTestCase {
     }
 
     func testCopyKeyboardShortcutsDoNotOpenSavePanel() {
-        for modifier: XCUIKeyModifierFlags in [.command, .control] {
+        for modifier: XCUIElement.KeyModifierFlags in [.command, .control] {
             let app = XCUIApplication()
             app.launchArguments = ["--uitesting-capture"]
             app.launch()
