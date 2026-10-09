@@ -7,7 +7,7 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-blue.svg)](https://www.apple.com/macos/)
 [![Architecture](https://img.shields.io/badge/arch-Apple%20Silicon-blueviolet.svg)](https://developer.apple.com/)
 
-<p align="center"><img src="Brand/lunarium-mark.svg" alt="Lunarium moon and star" width="124"></p>
+<p align="center"><img src="Brand/lunarium-banner.svg" alt="Lunarium — Capture the moment. Keep the flow." width="100%"></p>
 
 > **Development preview:** Lunarium is under active development. There is no notarized release yet. Follow the build instructions to test it on a Mac.
 
@@ -83,7 +83,7 @@ No Electron, embedded browser engine, third-party analytics, or network entitlem
 
 These checkboxes describe implemented source code, **not** a claim of a tested production release.
 
-## Contributing
+See [development notes](docs/DEVELOPMENT.md), [release process](docs/RELEASING.md) and [changelog](CHANGELOG.md) for project status and verification.\n\n## Contributing
 
 Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Please avoid sharing private screenshot contents in bug reports.
 
