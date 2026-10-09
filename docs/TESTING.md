@@ -35,3 +35,5 @@ UI tests are intentionally not a release gate on ephemeral CI runners because Sc
 - Signed/notarized first install and Sparkle upgrade from a previous signed release
 
 Results of this matrix have not yet been recorded on real hardware.
+
+Opaque redaction is asserted on decoded PNG pixel data, not only on the on-screen overlay; this is a privacy regression gate.

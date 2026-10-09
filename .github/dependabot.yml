@@ -5,8 +5,5 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
-  - package-ecosystem: swift
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+# XcodeGen generates the Xcode project only at build time, so Dependabot's
+# Swift package scanner has no checked-in manifest to inspect.
